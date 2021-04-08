@@ -5,7 +5,7 @@ contract DataAsset{
     uint256 public price;
 
     modifier onlyOwner {
-        require(msg.sender==owner);
+        require(msg.sender==owner, "Only Data Asset owner can call this function!");
         _;
     }
 
@@ -45,10 +45,16 @@ contract QA {
         _;
     }
 
+    function getBalance() public view returns(uint){
+        return address(this).balance;
+    }
+
     function register_dasset() public {
         require(!DAssets[msg.sender], "This address has already registered as a Data Asset!");
         DAssets[msg.sender] = true;
     }
+
+    constructor() payable{}
 
     function register_staker() public {
         require(!stakers[msg.sender].registered, "This address has already registered as a staker!"); // A staker should not register twice as that would reset their balance.
@@ -60,7 +66,7 @@ contract QA {
     function buy_asset(address payable DAsset, uint price) payable public onlyStaker{
         require(DAssets[DAsset], "No registered Data Asset found!");
         require(msg.value==price);
-        DAsset.transfer(price); // Does this work? What happens if the fallback function throws?
+        DAsset.transfer(price);
         stakers[msg.sender].bought[DAsset] = true;
     }
 
@@ -71,14 +77,14 @@ contract QA {
     }
 
     function receive_fee(address DAsset, address staker) payable public{
-        require(DAssets[DAsset]); // Data Asset must be registered.
-        require(stakers[staker].staked[DAsset] > 0); // Staker must have some stake in the data asset if they are to be rewarded.
+        require(DAssets[DAsset], "Data Asset must be registered!"); // Data Asset must be registered.
+        require(stakers[staker].staked[DAsset] > 0, "Staker must have some stake in Data Asset!"); // Staker must have some stake in the data asset if they are to be rewarded.
         stakers[staker].staked[DAsset] += msg.value; // Stakers fee is added to original stake.
         stakers[staker].value += msg.value;
     }
 
     function withdraw_stake(address DAsset, uint amount) public onlyStaker{
-        require(stakers[msg.sender].staked[DAsset] >= amount); // Can never withdraw more than current stake
+        require(stakers[msg.sender].staked[DAsset] >= amount, "Can not withdraw more than current stake!"); // Can never withdraw more than current stake
         stakers[msg.sender].staked[DAsset] -= amount;
         stakers[msg.sender].value -= amount;
         payable(msg.sender).transfer(amount);
